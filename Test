@@ -1,0 +1,153 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local open = false
+
+local sc = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
+sc.Name = "ESP"
+local button = Instance.new("TextButton", sc)
+button.BackgroundColor3 = Color3.fromRGB(255,255,255)
+button.Font = Enum.Font.RobotoMono
+button.Size = UDim2.new(0.062, 0,0.032, 0)
+button.Position = UDim2.new(0.931, 0,0.475, 0)
+button.TextScaled = true
+button.Text = "ESP: OFF"
+button.MouseButton1Click:Connect(function()
+	open = not open
+	if open then
+		button.Text = "ESP: ON"
+	else
+		button.Text = "ESP: OFF"
+	end
+	toggleesp(workspace.Chars)
+end)
+
+workspace.Chars.ChildAdded:Connect(function()
+	toggleesp(workspace.Chars)
+end)
+
+workspace.Chars.ChildRemoved:Connect(function()
+	toggleesp(workspace.Chars)
+end)
+
+function toggleesp(char: Folder)
+	if open then
+		for _, v in pairs(char:GetChildren()) do
+			if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then
+				local gear: Folder = v:FindFirstChild("CurrentGear")
+				
+				if not gear then return end
+				
+				local hlight = Instance.new("Highlight", v)
+				hlight.FillTransparency = 0.5
+				hlight.OutlineTransparency = 1
+				
+				hlight.Name = "EspHighlight"
+				
+				local bi = Instance.new("BillboardGui", v.HumanoidRootPart)
+				bi.Name = "Espbi"
+				bi.Size = UDim2.new(3,0,1,0)
+				bi.ExtentsOffset = Vector3.new(0, 3, 0)
+				bi.AlwaysOnTop = true
+				bi.ClipsDescendants = false
+				
+				local fr = Instance.new("Frame", bi)
+				fr.Size = UDim2.new(1,0,1,0)
+				fr.BackgroundTransparency = 1
+				
+				local bi2 = Instance.new("BillboardGui", v.HumanoidRootPart)
+				bi2.Name = "Armorbi"
+				bi2.Size = UDim2.new(3,0,1.5,0)
+				bi2.AlwaysOnTop = true
+				bi2.ClipsDescendants = false
+
+				local fr2 = Instance.new("Frame", bi2)
+				fr2.Size = UDim2.new(1,0,1,0)
+				fr2.BackgroundTransparency = 1
+				
+				local list2 = Instance.new("UIGridLayout", fr2)
+				list2.CellSize = UDim2.new(1,0,0.3,0)
+				
+				local hptext = Instance.new("TextLabel", fr)
+				hptext.Size = UDim2.new(1,0,0.5,0)
+				hptext.BackgroundTransparency = 1
+				hptext.TextScaled = true
+				hptext.Text = math.floor(v.Humanoid.Health)
+				hptext.TextColor3 = Color3.fromRGB(129, 255, 51)
+				hptext.Font = Enum.Font.RobotoMono
+				
+				local item = Instance.new("TextLabel", fr)
+				item.TextColor3 = Color3.fromRGB(255,255,255)
+				item.Size = UDim2.new(1,0,0.5,0)
+				item.Position = UDim2.new(0,0,0.5,0)
+				item.Font = Enum.Font.RobotoMono
+				item.TextScaled = true
+				item.BackgroundTransparency = 1
+				
+				local ray = v:FindFirstChildOfClass("RayValue")
+				
+				if ray then
+					item.Text = ray.Name
+				else
+					item.Text = "None"
+				end			
+				
+				local function updategear()
+					for _,v in pairs(fr2:GetChildren()) do
+						if v:IsA("TextLabel") then
+							v:Destroy()
+						end
+					end
+					
+					for _,v in pairs(gear:GetChildren()) do
+						if v:IsA('Folder') then
+							local text = Instance.new("TextLabel", fr2)
+							text.TextColor3 = Color3.fromRGB(255,255,255)
+							text.Font = Enum.Font.RobotoMono
+							text.TextScaled = true
+							text.BackgroundTransparency = 1
+							text.Text = v.Name
+						end
+					end
+				end
+				
+				updategear()
+				
+				gear.ChildAdded:Connect(updategear)
+				gear.ChildRemoved:Connect(updategear)
+				
+				
+				v.ChildAdded:Connect(function(child)
+					if child:IsA("RayValue") then
+						item.Text = child.Name
+					end
+				end)
+				
+				v.ChildRemoved:Connect(function(child)
+					if child:IsA("RayValue") then
+						item.Text = "None"
+					end
+				end)
+				
+				v.Humanoid.HealthChanged:Connect(function()
+					hptext.Text = math.floor(v.Humanoid.Health)
+				end)
+				
+			end
+		end
+	else
+		for _, v in pairs(char:GetChildren()) do
+			if v:IsA("Model") and v:FindFirstChildOfClass("Humanoid") then
+				local highlight = v:FindFirstChild("EspHighlight")
+				local bi = v.HumanoidRootPart:FindFirstChild("Espbi")
+				if highlight then
+					highlight:Destroy()
+				end
+				
+				if bi then
+					bi:Destroy()
+				end
+			end
+		end
+	end
+end

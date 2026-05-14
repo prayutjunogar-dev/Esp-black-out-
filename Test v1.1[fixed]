@@ -1,0 +1,289 @@
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local open = false
+local filltran = 0.8
+local outline = 0.8
+
+local bitabel = {}
+local hlight
+
+local sc = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
+sc.Name = "ESP"
+local button = Instance.new("TextButton", sc)
+button.BackgroundColor3 = Color3.fromRGB(255,255,255)
+button.Font = Enum.Font.RobotoMono
+button.Size = UDim2.new(0.062, 0,0.032, 0)
+button.Position = UDim2.new(0.931, 0,0.475, 0)
+button.TextScaled = true
+button.Text = "ESP: OFF"
+button.MouseButton1Click:Connect(function()
+	open = not open
+	if open then
+		button.Text = "ESP: ON"
+	else
+		button.Text = "ESP: OFF"
+	end
+	toggleesp(workspace.Chars)
+end)
+
+local button2 = Instance.new("TextBox", sc)
+button2.BackgroundColor3 = Color3.fromRGB(255,255,255)
+button2.Font = Enum.Font.RobotoMono
+button2.Size = UDim2.new(0.062, 0,0.032, 0)
+button2.Position = UDim2.new(0.931, 0,0.4, 0)
+button2.TextScaled = true
+button2.Text = "Fill Transparency"
+
+button2.FocusLost:Connect(function()
+	filltran = tonumber(button2.Text) or 0.5
+	hlight.FillTransparency = filltran
+end)
+
+local button3 = Instance.new("TextBox", sc)
+button3.BackgroundColor3 = Color3.fromRGB(255,255,255)
+button3.Font = Enum.Font.RobotoMono
+button3.Size = UDim2.new(0.062, 0,0.032, 0)
+button3.Position = UDim2.new(0.931, 0,0.35, 0)
+button3.TextScaled = true
+button3.Text = "Outline Transparency"
+
+button3.FocusLost:Connect(function()
+	outline = tonumber(button3.Text) or 0.5
+	hlight.OutlineTransparency = outline
+end)
+
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.J then
+		button.Visible = not button.Visible
+		button2.Visible = not button2.Visible
+		button3.Visible = not button3.Visible
+	end
+end)
+
+function toggleesp(char: Folder)
+	if open then
+		for _, v in pairs(char:GetChildren()) do
+			if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and not v:FindFirstChild("EspGui") then
+				local gear: Folder = v:FindFirstChild("CurrentGear")
+				local holder: Folder = v:FindFirstChild("Holsters")
+
+				if not gear and not holder then return end
+
+				hlight = Instance.new("Highlight", v)
+				hlight.FillTransparency = filltran
+				hlight.OutlineTransparency = outline
+
+				hlight.Name = "EspHighlight"
+				
+				local bi = Instance.new("BillboardGui", v)
+				bi.Size = UDim2.new(5,0,7,0)
+				bi.AlwaysOnTop = true
+				bi.Name = "EspGui"
+
+				local fr4 = Instance.new("Frame", bi)
+				fr4.Size = UDim2.new(1,0,1,0)
+				fr4.BackgroundTransparency = 1
+				
+				local cor = Instance.new("UIStroke", fr4)
+				cor.Thickness = 1.5
+				cor.Color = Color3.fromRGB(255,255,255)
+				
+				v.AttributeChanged:Connect(function()
+					if v:GetAttribute("Commander") then
+						hlight.FillColor = Color3.fromRGB(19, 31, 255)
+						cor.Color = Color3.fromRGB(19, 31, 255)
+					elseif v:GetAttribute("Operator") then
+						hlight.FillColor = Color3.fromRGB(255, 85, 255)
+						cor.Color = Color3.fromRGB(255, 85, 255)
+					elseif v:GetAttribute("Blade dancer") or v:GetAttribute("Blade Dancer") then
+						hlight.FillColor = Color3.fromRGB(255, 255, 0)
+						cor.Color = Color3.fromRGB(255, 255, 0)
+					end
+				end)
+				
+				local fr = Instance.new("Frame", bi)
+				fr.Size = UDim2.new(1,0,1,0)
+				fr.BackgroundTransparency = 1
+				fr.Name = "Player"
+
+				local bi2 = Instance.new("BillboardGui", v.HumanoidRootPart)
+				bi2.Name = "Armorbi"
+				bi2.Size = UDim2.new(3,0,1.5,0)
+				bi2.AlwaysOnTop = true
+				bi2.ClipsDescendants = false
+				
+				local bi3 = Instance.new("BillboardGui", v.HumanoidRootPart)
+				bi3.Name = "Armorbi2"
+				bi3.Size = UDim2.new(3,0,1.5,0)
+				bi3.AlwaysOnTop = true
+				bi3.ClipsDescendants = false
+				bi3.ExtentsOffset = Vector3.new(2,0,0)
+				
+				local fr3 = Instance.new("Frame", bi3)
+				fr3.Size = UDim2.new(1,0,1,0)
+				fr3.BackgroundTransparency = 1
+				
+				local list1 = Instance.new("UIGridLayout", fr3)
+				list1.CellSize = UDim2.new(1,0,0.2,0)
+				
+
+				local fr2 = Instance.new("Frame", bi2)
+				fr2.Size = UDim2.new(1,0,1,0)
+				fr2.BackgroundTransparency = 1
+				
+				local list2 = Instance.new("UIGridLayout", fr2)
+				list2.CellSize = UDim2.new(1,0,0.3,0)
+
+				local nametext = Instance.new("TextLabel", fr)
+				nametext.Size = UDim2.new(1,0,0.1,0)
+				nametext.BackgroundTransparency = 1
+				nametext.TextScaled = false
+				nametext.TextSize = 18
+				nametext.Text = v.Name
+				nametext.TextColor3 = Color3.fromRGB(129, 255, 51)
+				nametext.Font = Enum.Font.RobotoMono
+				nametext.TextStrokeTransparency = 0
+				
+				local item = Instance.new("TextLabel", fr)
+				item.TextColor3 = Color3.fromRGB(255,255,255)
+				item.Size = UDim2.new(1,0,0.1,0)
+				item.Position = UDim2.new(0,0,0.9,0)
+				item.Font = Enum.Font.RobotoMono
+				item.TextScaled = false
+				item.TextSize = 18
+				item.BackgroundTransparency = 1
+				item.TextStrokeTransparency = 0
+				
+				local hpbar = Instance.new("Frame", bi)
+				hpbar.Name = "Helth bar"
+				hpbar.Size = UDim2.new(0.15,0,1,0)
+				hpbar.AnchorPoint = Vector2.new(0,0)
+				hpbar.Position = UDim2.new(0.99,0,0,0)
+				hpbar.BorderSizePixel = 0
+				hpbar.BackgroundColor3 = Color3.fromRGB(13,13,13)
+				hpbar.BackgroundTransparency = 0.6
+				
+				local hpbar2 = Instance.new("Frame", hpbar)
+				hpbar2.Size = UDim2.new(1,0,1,0)
+				hpbar2.AnchorPoint = Vector2.new(0,1)
+				hpbar2.Position = UDim2.new(0,0,1,0)
+				hpbar2.BorderSizePixel = 0
+				hpbar2.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+				
+				local hptext = Instance.new("TextLabel", hpbar)
+				hptext.Size = UDim2.new(1,0,0.2,0)
+				hptext.Position = UDim2.new(0.5,0,0.5,0)
+				hptext.AnchorPoint = Vector2.new(0.5,0.5)
+				hptext.TextScaled = true
+				hptext.Font = Enum.Font.RobotoMono
+				hptext.Text = math.floor(v.Humanoid.Health)
+				hptext.TextColor3 = Color3.fromRGB(0, 188, 88)
+				hptext.TextStrokeTransparency = 0
+				hptext.BackgroundTransparency = 1
+
+				local ray = v:FindFirstChildOfClass("RayValue")
+				
+				table.insert(bitabel, bi)
+				table.insert(bitabel, bi2)
+				table.insert(bitabel, bi3)
+				if ray then
+					item.Text = ray.Name
+				else
+					item.Text = "None"
+				end			
+
+				local function updategear()
+					for _,v2 in pairs(fr2:GetChildren()) do
+						if v2:IsA("TextLabel") then
+							v2:Destroy()
+						end
+					end
+
+					for _,v3 in pairs(gear:GetChildren()) do
+						if v3:IsA('Folder') then
+							local text = Instance.new("TextLabel", fr2)
+							text.TextColor3 = Color3.fromRGB(255,255,255)
+							text.Font = Enum.Font.RobotoMono
+							text.TextScaled = true
+							text.TextSize = 14
+							text.BackgroundTransparency = 1
+							text.Text = v3.Name
+						end
+					end
+				end
+				
+				local function updateholder()
+					for _,v4 in pairs(fr3:GetChildren()) do
+						if v4:IsA("TextLabel") then
+							v4:Destroy()
+						end
+					end
+
+					for _,v5 in pairs(holder:GetChildren()) do
+						if v5:IsA('Model') then
+							local text = Instance.new("TextLabel", fr3)
+							text.TextColor3 = Color3.fromRGB(255,255,255)
+							text.Font = Enum.Font.RobotoMono
+							text.TextScaled = true
+							text.TextSize = 14
+							text.BackgroundTransparency = 1
+							text.Text = v5.Name
+						end
+					end
+					
+				end
+
+				updategear()
+				updateholder()
+
+				gear.ChildAdded:Connect(updategear)
+				gear.ChildRemoved:Connect(updategear)
+				
+				holder.ChildAdded:Connect(updateholder)
+				holder.ChildRemoved:Connect(updateholder)
+
+
+				v.ChildAdded:Connect(function(child)
+					if child:IsA("RayValue") then
+						item.Text = child.Name
+					end
+				end)
+
+				v.ChildRemoved:Connect(function(child)
+					if child:IsA("RayValue") then
+						item.Text = "None"
+					end
+				end)
+
+				v.Humanoid.HealthChanged:Connect(function()
+					local size = math.clamp(v.Humanoid.Health/v.Humanoid.MaxHealth,0,1)
+					hpbar2.Size = UDim2.new(1,0,size,0)
+					hptext.Text = math.floor(v.Humanoid.Health)
+				end)
+
+			end
+		end
+	else
+		for _, v in pairs(char:GetChildren()) do
+			if v:IsA("Model") and v:FindFirstChildOfClass("Humanoid") then
+				if hlight then
+					hlight:Destroy()
+				end
+
+				for _,v in pairs(bitabel) do
+					v:Destroy()
+				end
+			end
+		end
+	end
+end
+
+workspace.Chars.ChildAdded:Connect(function()
+	toggleesp(workspace.Chars)
+end)
+
+workspace.Chars.ChildRemoved:Connect(function()
+	toggleesp(workspace.Chars)
+end)

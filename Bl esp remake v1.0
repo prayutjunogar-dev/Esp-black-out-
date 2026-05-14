@@ -1,0 +1,251 @@
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local camera = workspace.Camera
+local open = false
+local filltran = 0.8
+local outline = 0.8
+local connected
+local bitabel = {}
+local hlight
+
+local sc = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
+sc.Name = "ESP"
+local button = Instance.new("TextButton", sc)
+button.BackgroundColor3 = Color3.fromRGB(255,255,255)
+button.Font = Enum.Font.RobotoMono
+button.Size = UDim2.new(0.062, 0,0.032, 0)
+button.Position = UDim2.new(0.931, 0,0.475, 0)
+button.TextScaled = true
+button.Text = "ESP: OFF"
+button.MouseButton1Click:Connect(function()
+	open = not open
+	if open then
+		button.Text = "ESP: ON"
+	else
+		button.Text = "ESP: OFF"
+	end
+	toggleesp(workspace.Chars)
+end)
+
+local button2 = Instance.new("TextBox", sc)
+button2.BackgroundColor3 = Color3.fromRGB(255,255,255)
+button2.Font = Enum.Font.RobotoMono
+button2.Size = UDim2.new(0.062, 0,0.032, 0)
+button2.Position = UDim2.new(0.931, 0,0.4, 0)
+button2.TextScaled = true
+button2.Text = "Fill Transparency"
+
+button2.FocusLost:Connect(function()
+	filltran = tonumber(button2.Text) or 0.5
+	hlight.FillTransparency = filltran
+end)
+
+local button3 = Instance.new("TextBox", sc)
+button3.BackgroundColor3 = Color3.fromRGB(255,255,255)
+button3.Font = Enum.Font.RobotoMono
+button3.Size = UDim2.new(0.062, 0,0.032, 0)
+button3.Position = UDim2.new(0.931, 0,0.35, 0)
+button3.TextScaled = true
+button3.Text = "Outline Transparency"
+
+button3.FocusLost:Connect(function()
+	outline = tonumber(button3.Text) or 0.5
+	hlight.OutlineTransparency = outline
+end)
+
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.J then
+		button.Visible = not button.Visible
+		button2.Visible = not button2.Visible
+		button3.Visible = not button3.Visible
+	end
+end)
+
+function toggleesp(char: Folder)
+	if open then
+		for _, v in pairs(char:GetChildren()) do
+			if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then
+				local gear: Folder = v:FindFirstChild("CurrentGear")
+				local holder: Folder = v:FindFirstChild("Holsters")
+
+				if not gear and not holder then return end
+
+				hlight = Instance.new("Highlight", v)
+				hlight.FillTransparency = filltran
+				hlight.OutlineTransparency = outline
+
+				hlight.Name = "EspHighlight"
+				
+				local bi = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
+				bi.Name = "Box"
+				
+				local box = Instance.new("Frame", bi)
+				box.BackgroundTransparency = 1
+				
+				local cor = Instance.new("UIStroke", box)
+				cor.Thickness = 1
+				cor.Color = Color3.fromRGB(255,255,255)
+				
+				connected = RunService.RenderStepped:Connect(function()
+					
+					local p,o = camera:WorldToScreenPoint(v.HumanoidRootPart.Position)
+					if o then
+						local scale = 1 / (p.Z * math.tan(math.rad(camera.FieldOfView * 0.5)) * 2) * 1000
+						local width, height = math.floor(4.5 * scale), math.floor(6 * scale)
+						local x, y = math.floor(p.X), math.floor(p.Y)
+						local xPosition, yPosition = math.floor(x - width * 0.5), math.floor((y - height * 0.5) + (0.5 * scale))
+						
+						box.Size = UDim2.new(0, width, 0, height)
+						box.Position = UDim2.new(0, xPosition, 0, yPosition)
+						box.Visible = true
+						
+					else
+						box.Visible = false
+					end
+				end)
+				
+				local tename = Instance.new("TextLabel", box)
+				tename.BackgroundTransparency = 1
+				tename.Font = Enum.Font.RobotoMono
+				tename.Position = UDim2.new(0, 0, -0.1, 0)
+				tename.Size = UDim2.new(1,0,0.075,0)
+				tename.TextScaled = false
+				tename.TextSize = 18
+				tename.TextColor3 = Color3.fromRGB(255, 255, 255)
+				tename.TextStrokeTransparency = 0
+				tename.Text = v.Name
+				tename.ZIndex = 10
+				
+				local hpbar = Instance.new("Frame", box)
+				hpbar.Size = UDim2.new(0.1,0,1,0)
+				hpbar.Position = UDim2.new(-0.2,0,0,0)
+				hpbar.BorderSizePixel = 0
+				hpbar.BackgroundTransparency = 0.5
+				hpbar.BackgroundColor3 = Color3.fromRGB(13,13,13)
+				
+				local hpbar2 = Instance.new("Frame", hpbar)
+				hpbar2.Size = UDim2.new(1,0,1,0)
+				hpbar2.AnchorPoint = Vector2.new(0,1)
+				hpbar2.Position = UDim2.new(0,0,1,0)
+				hpbar2.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+				hpbar2.Size = UDim2.new(1,0,math.clamp(v.Humanoid.Health/v.Humanoid.MaxHealth,0,1),0)
+				hpbar2.BorderSizePixel = 0
+				
+				local tooltext = Instance.new("TextLabel", box)
+				tooltext.Position = UDim2.new(0,0,1,0)
+				tooltext.Size = UDim2.new(1,0,0.075,0)
+				tooltext.BackgroundTransparency = 1
+				tooltext.Font = Enum.Font.RobotoMono
+				tooltext.TextScaled = false
+				tooltext.TextSize = 18
+				tooltext.TextStrokeTransparency = 0
+				tooltext.TextColor3 = Color3.fromRGB(255, 255, 255)
+				
+				local listframe = Instance.new("Frame", box)
+				listframe.Size = UDim2.new(1, 0,1,0)
+				listframe.Position = UDim2.new(1.05,0,0,0)
+				listframe.BackgroundTransparency = 1
+				listframe.BorderSizePixel = 0
+				
+				local grid = Instance.new("UIGridLayout", listframe)
+				grid.CellSize = UDim2.new(1,0,0.15,0)
+				
+				local function updategear()
+					for _,v2 in pairs(listframe:GetChildren()) do
+						if v2:IsA("TextLabel") then
+							v2:Destroy()
+						end
+					end
+
+					for _,v3 in pairs(gear:GetChildren()) do
+						if v3:IsA('Folder') then
+							local text = Instance.new("TextLabel", listframe)
+							text.TextColor3 = Color3.fromRGB(255,255,255)
+							text.Font = Enum.Font.RobotoMono
+							text.TextScaled = true
+							text.TextSize = 14
+							text.BackgroundTransparency = 1
+							text.Text = v3.Name
+							text.TextStrokeTransparency = 0
+							text.TextXAlignment = Enum.TextXAlignment.Left
+							text.ZIndex = 10
+						end
+					end
+				end
+				
+				updategear()
+				
+				gear.ChildAdded:Connect(function()
+					updategear()
+				end)
+				
+				gear.ChildRemoved:Connect(function()
+					updategear()
+				end)
+				
+				local ray = v:FindFirstChildOfClass("RayValue")
+				
+				if ray then
+					tooltext.Text = ray.Name
+				else
+					tooltext.Text = "None"
+				end
+				
+				v.ChildAdded:Connect(function(child)
+					if child:IsA("RayValue") then
+						tooltext.Text = child.Name
+					end
+				end)
+				
+				v.ChildRemoved:Connect(function(child)
+					if child:IsA("RayValue") then
+						tooltext.Text = "None"
+					end
+				end)
+				
+				v.Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+					hpbar2.Size = UDim2.new(1,0,math.clamp(v.Humanoid.Health/v.Humanoid.MaxHealth,0,1),0)
+				end)
+				
+				v.AttributeChanged:Connect(function()
+					if v:GetAttribute("Commander") then
+						hlight.FillColor = Color3.fromRGB(19, 31, 255)
+						cor.Color = Color3.fromRGB(19, 31, 255)
+					elseif v:GetAttribute("Operator") then
+						hlight.FillColor = Color3.fromRGB(255, 85, 255)
+						cor.Color = Color3.fromRGB(255, 85, 255)
+					elseif v:GetAttribute("Blade dancer") or v:GetAttribute("Blade Dancer") then
+						hlight.FillColor = Color3.fromRGB(255, 255, 0)
+						cor.Color = Color3.fromRGB(255, 255, 0)
+					end
+				end)
+				
+			end
+		end
+	else
+		for _, v in pairs(char:GetChildren()) do
+			if v:IsA("Model") and v:FindFirstChildOfClass("Humanoid") then
+				if hlight then
+					hlight:Destroy()
+				end
+
+				for _,v in pairs(bitabel) do
+					v:Destroy()
+				end
+				
+				if connected then
+					connected:Disconnect()
+				end
+			end
+		end
+	end
+end
+
+workspace.Chars.ChildAdded:Connect(function()
+	toggleesp(workspace.Chars)
+end)
+
+workspace.Chars.ChildRemoved:Connect(function()
+	toggleesp(workspace.Chars)
+end)

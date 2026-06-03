@@ -1,0 +1,181 @@
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI Setup
+local screen = Instance.new("ScreenGui")
+screen.ResetOnSpawn = false
+screen.Name = "TeleportUI"
+screen.Parent = LocalPlayer.PlayerGui
+
+-- Main Panel
+local panel = Instance.new("Frame")
+panel.Size = UDim2.new(0, 200, 0, 160)
+panel.Position = UDim2.new(0, 16, 0, 16)
+panel.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
+panel.BorderSizePixel = 0
+panel.Parent = screen
+Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", panel).Color = Color3.fromRGB(55, 55, 60)
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -16, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 6)
+title.BackgroundTransparency = 1
+title.Text = "⬡  TELEPORT"
+title.TextColor3 = Color3.fromRGB(160, 160, 170)
+title.TextSize = 12
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = panel
+
+-- Divider
+local divider = Instance.new("Frame")
+divider.Size = UDim2.new(1, -20, 0, 1)
+divider.Position = UDim2.new(0, 10, 0, 36)
+divider.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+divider.BorderSizePixel = 0
+divider.Parent = panel
+
+-- Distance Label
+local distLabel = Instance.new("TextLabel")
+distLabel.Size = UDim2.new(1, -16, 0, 20)
+distLabel.Position = UDim2.new(0, 10, 0, 44)
+distLabel.BackgroundTransparency = 1
+distLabel.Text = "Max Distance"
+distLabel.TextColor3 = Color3.fromRGB(120, 120, 130)
+distLabel.TextSize = 11
+distLabel.Font = Enum.Font.Gotham
+distLabel.TextXAlignment = Enum.TextXAlignment.Left
+distLabel.Parent = panel
+
+-- Distance TextBox
+local textbox = Instance.new("TextBox")
+textbox.Size = UDim2.new(1, -20, 0, 28)
+textbox.Position = UDim2.new(0, 10, 0, 64)
+textbox.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+textbox.BorderSizePixel = 0
+textbox.Text = "1000"
+textbox.TextColor3 = Color3.fromRGB(220, 220, 230)
+textbox.PlaceholderText = "Enter distance..."
+textbox.PlaceholderColor3 = Color3.fromRGB(80, 80, 90)
+textbox.TextSize = 13
+textbox.Font = Enum.Font.Gotham
+textbox.Parent = panel
+Instance.new("UICorner", textbox).CornerRadius = UDim.new(0, 6)
+local tbStroke = Instance.new("UIStroke", textbox)
+tbStroke.Color = Color3.fromRGB(55, 55, 65)
+
+-- Start/Stop Button
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, -20, 0, 32)
+button.Position = UDim2.new(0, 10, 0, 100)
+button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+button.BorderSizePixel = 0
+button.Text = "▶  Start TP"
+button.TextColor3 = Color3.fromRGB(200, 200, 210)
+button.TextSize = 13
+button.Font = Enum.Font.GothamBold
+button.Parent = panel
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+local btnStroke = Instance.new("UIStroke", button)
+btnStroke.Color = Color3.fromRGB(70, 70, 80)
+
+-- Status bar
+local statusBar = Instance.new("TextLabel")
+statusBar.Size = UDim2.new(1, -20, 0, 18)
+statusBar.Position = UDim2.new(0, 10, 0, 138)
+statusBar.BackgroundTransparency = 1
+statusBar.Text = "● Idle"
+statusBar.TextColor3 = Color3.fromRGB(100, 100, 110)
+statusBar.TextSize = 11
+statusBar.Font = Enum.Font.Gotham
+statusBar.TextXAlignment = Enum.TextXAlignment.Left
+statusBar.Parent = panel
+
+-- Logic
+local connected
+local isRunning = false
+local dis = 1000
+
+local function setStatus(text, color)
+    statusBar.Text = text
+    statusBar.TextColor3 = color or Color3.fromRGB(100, 100, 110)
+end
+
+textbox.FocusLost:Connect(function()
+    local num = tonumber(textbox.Text)
+    if num then
+        dis = num
+    else
+        textbox.Text = tostring(dis)
+    end
+end)
+
+local function stopTp()
+    if connected then connected:Disconnect() connected = nil end
+    isRunning = false
+    button.Text = "▶  Start TP"
+    button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    btnStroke.Color = Color3.fromRGB(70, 70, 80)
+    setStatus("● Idle")
+end
+
+local function followTarget(target)
+    if connected then connected:Disconnect() connected = nil end
+    connected = RunService.RenderStepped:Connect(function()
+        local myChar = LocalPlayer.Character
+        local targetChar = target.Character
+        if not myChar or not targetChar then return end
+        local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+        local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+        if not myRoot or not targetRoot then return end
+        if (myRoot.Position - targetRoot.Position).Magnitude > dis then return end
+        myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 1.5, 2)
+    end)
+end
+
+local function tp()
+    if isRunning then stopTp() return end
+    isRunning = true
+    button.Text = "■  Stop TP"
+    button.BackgroundColor3 = Color3.fromRGB(80, 25, 25)
+    btnStroke.Color = Color3.fromRGB(180, 60, 60)
+    task.spawn(function()
+        local index = 1
+        while isRunning do
+            local others = {}
+            for _, v in ipairs(Players:GetPlayers()) do
+                if v ~= LocalPlayer then table.insert(others, v) end
+            end
+            if #others > 0 then
+                if index > #others then index = 1 end
+                local target = others[index]
+                setStatus("● Following: " .. target.Name, Color3.fromRGB(80, 200, 120))
+                followTarget(target)
+                index = index + 1
+            else
+                setStatus("● No players found", Color3.fromRGB(200, 150, 60))
+            end
+            task.wait(5)
+        end
+    end)
+end
+
+button.MouseButton1Click:Connect(tp)
+
+-- Hover effect
+button.MouseEnter:Connect(function()
+    if not isRunning then
+        button.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+    end
+end)
+button.MouseLeave:Connect(function()
+    if not isRunning then
+        button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    end
+end)

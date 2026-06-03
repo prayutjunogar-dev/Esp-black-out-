@@ -120,7 +120,7 @@ statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 local connected
 local isRunning = false
 local dis = 1000
-local lockedTarget = nil  -- nil = สุ่ม, ถ้ามีชื่อ = lock คนนั้น
+local blacklist = {}
 local playerButtons = {}
 
 local function setStatus(text, color)
@@ -130,32 +130,41 @@ end
 
 -- สร้างปุ่มชื่อผู้เล่น
 local function refreshPlayerList()
-	for _, b in pairs(playerButtons) do b:Destroy() end
+	for _, b in pairs(playerButtons) do
+		b:Destroy()
+	end
+
 	playerButtons = {}
 
 	for _, v in ipairs(Players:GetPlayers()) do
 		if v ~= LocalPlayer then
-			local pb = Instance.new("TextButton", scrollFrame)
+			local pb = Instance.new("TextButton")
+			pb.Parent = scrollFrame
 			pb.Size = UDim2.new(1, -6, 0, 26)
+			pb.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
 			pb.BorderSizePixel = 0
+			pb.Text = v.Name
 			pb.TextSize = 12
 			pb.Font = Enum.Font.Gotham
 			pb.TextXAlignment = Enum.TextXAlignment.Left
 
-			local locked = (lockedTarget == v.Name)
-			pb.Text = (locked and "🔒  " or "   ") .. v.Name
-			pb.BackgroundColor3 = locked and Color3.fromRGB(20, 50, 80) or Color3.fromRGB(28, 28, 32)
-			pb.TextColor3 = locked and Color3.fromRGB(100, 180, 255) or Color3.fromRGB(190, 190, 200)
-			Instance.new("UICorner", pb).CornerRadius = UDim.new(0, 5)
+			Instance.new("UICorner", pb).CornerRadius = UDim.new(0, 6)
+
+			if table.find(blacklist, v.Name) then
+				pb.TextColor3 = Color3.fromRGB(0, 170, 255)
+			else
+				pb.TextColor3 = Color3.fromRGB(200, 200, 210)
+			end
 
 			pb.MouseButton1Click:Connect(function()
-				if lockedTarget == v.Name then
-					lockedTarget = nil
-					targetLabel.Text = "Target  •  Auto cycle"
+				local found = table.find(blacklist, v.Name)
+
+				if found then
+					table.remove(blacklist, found)
 				else
-					lockedTarget = v.Name
-					targetLabel.Text = "Target  •  Locked: " .. v.Name
+					table.insert(blacklist, v.Name)
 				end
+
 				refreshPlayerList()
 			end)
 
@@ -163,11 +172,10 @@ local function refreshPlayerList()
 		end
 	end
 
-	-- อัปเดต canvas height
-	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #playerButtons * 30)
+	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, scrollLayout.AbsoluteContentSize.Y)
 end
 
--- อัปเดต list ทุก 3 วิ
+
 task.spawn(function()
 	while true do
 		refreshPlayerList()
@@ -204,7 +212,8 @@ local function followTarget(target)
 		if not myRoot or not targetRoot then return end
 		if (myRoot.Position - targetRoot.Position).Magnitude > dis then return end
 		local offset = targetRoot.CFrame * CFrame.new(0, 1.5, 2)
-		myRoot.CFrame = myRoot.CFrame:Lerp(offset, 0.1)
+		myRoot.AssemblyLinearVelocity = Vector3.zero
+		myRoot.CFrame = offset
 	end)
 end
 
@@ -220,21 +229,9 @@ local function tp()
 		while isRunning do
 			local others = {}
 			for _, v in ipairs(Players:GetPlayers()) do
-				if v ~= LocalPlayer then table.insert(others, v) end
+				if v ~= LocalPlayer and not table.find(blacklist, v.Name) then table.insert(others, v) end
 			end
 
-			if lockedTarget then
-				-- Lock คนที่เลือก
-				local target = Players:FindFirstChild(lockedTarget)
-				if target then
-					setStatus("🔒 Locked: " .. lockedTarget, Color3.fromRGB(100, 180, 255))
-					followTarget(target)
-				else
-					setStatus("⚠ Player not found", Color3.fromRGB(220, 150, 50))
-				end
-				task.wait(1) -- เช็คถี่ขึ้นตอน lock
-			else
-				-- สุ่มวนไปเรื่อยๆ
 				if #others > 0 then
 					if index > #others then index = 1 end
 					local target = others[index]
@@ -245,14 +242,23 @@ local function tp()
 					setStatus("● No players found", Color3.fromRGB(200, 150, 60))
 				end
 				task.wait(5)
-			end
 		end
 	end)
 end
 
-LocalPlayer.Character.Humanoid.Died:Connect(function()
-	stopTp()
-end)
+local function setupCharacter(char)
+	local humanoid = char:WaitForChild("Humanoid")
+
+	humanoid.Died:Connect(function()
+		stopTp()
+	end)
+end
+
+if LocalPlayer.Character then
+	setupCharacter(LocalPlayer.Character)
+end
+
+LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
 button.MouseButton1Click:Connect(tp)
 button.MouseEnter:Connect(function()

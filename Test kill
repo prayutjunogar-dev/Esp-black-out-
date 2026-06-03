@@ -103,79 +103,80 @@ local isRunning = false
 local dis = 1000
 
 local function setStatus(text, color)
-    statusBar.Text = text
-    statusBar.TextColor3 = color or Color3.fromRGB(100, 100, 110)
+	statusBar.Text = text
+	statusBar.TextColor3 = color or Color3.fromRGB(100, 100, 110)
 end
 
 textbox.FocusLost:Connect(function()
-    local num = tonumber(textbox.Text)
-    if num then
-        dis = num
-    else
-        textbox.Text = tostring(dis)
-    end
+	local num = tonumber(textbox.Text)
+	if num then
+		dis = num
+	else
+		textbox.Text = tostring(dis)
+	end
 end)
 
 local function stopTp()
-    if connected then connected:Disconnect() connected = nil end
-    isRunning = false
-    button.Text = "▶  Start TP"
-    button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-    btnStroke.Color = Color3.fromRGB(70, 70, 80)
-    setStatus("● Idle")
+	if connected then connected:Disconnect() connected = nil end
+	isRunning = false
+	button.Text = "▶  Start TP"
+	button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+	btnStroke.Color = Color3.fromRGB(70, 70, 80)
+	setStatus("● Idle")
 end
 
 local function followTarget(target)
-    if connected then connected:Disconnect() connected = nil end
-    connected = RunService.RenderStepped:Connect(function()
-        local myChar = LocalPlayer.Character
-        local targetChar = target.Character
-        if not myChar or not targetChar then return end
-        local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-        local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-        if not myRoot or not targetRoot then return end
-        if (myRoot.Position - targetRoot.Position).Magnitude > dis then return end
-        myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 1.5, 2)
-    end)
+	if connected then connected:Disconnect() connected = nil end
+	connected = RunService.RenderStepped:Connect(function()
+		local myChar = LocalPlayer.Character
+		local targetChar = target.Character
+		if not myChar or not targetChar then return end
+		local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+		local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+		if not myRoot or not targetRoot then return end
+		if (myRoot.Position - targetRoot.Position).Magnitude > dis then return end
+		local offset = targetRoot.CFrame * CFrame.new(0, 1.5, 2)
+		myRoot.CFrame = myRoot.CFrame:Lerp(offset, 0.1)
+	end)
 end
 
 local function tp()
-    if isRunning then stopTp() return end
-    isRunning = true
-    button.Text = "■  Stop TP"
-    button.BackgroundColor3 = Color3.fromRGB(80, 25, 25)
-    btnStroke.Color = Color3.fromRGB(180, 60, 60)
-    task.spawn(function()
-        local index = 1
-        while isRunning do
-            local others = {}
-            for _, v in ipairs(Players:GetPlayers()) do
-                if v ~= LocalPlayer then table.insert(others, v) end
-            end
-            if #others > 0 then
-                if index > #others then index = 1 end
-                local target = others[index]
-                setStatus("● Following: " .. target.Name, Color3.fromRGB(80, 200, 120))
-                followTarget(target)
-                index = index + 1
-            else
-                setStatus("● No players found", Color3.fromRGB(200, 150, 60))
-            end
-            task.wait(5)
-        end
-    end)
+	if isRunning then stopTp() return end
+	isRunning = true
+	button.Text = "■  Stop TP"
+	button.BackgroundColor3 = Color3.fromRGB(80, 25, 25)
+	btnStroke.Color = Color3.fromRGB(180, 60, 60)
+	task.spawn(function()
+		local index = 1
+		while isRunning do
+			local others = {}
+			for _, v in ipairs(Players:GetPlayers()) do
+				if v ~= LocalPlayer then table.insert(others, v) end
+			end
+			if #others > 0 then
+				if index > #others then index = 1 end
+				local target = others[index]
+				setStatus("● Following: " .. target.Name, Color3.fromRGB(80, 200, 120))
+				followTarget(target)
+				index = index + 1
+			else
+				setStatus("● No players found", Color3.fromRGB(200, 150, 60))
+			end
+			task.wait(5)
+		end
+	end)
 end
 
 button.MouseButton1Click:Connect(tp)
 
 -- Hover effect
 button.MouseEnter:Connect(function()
-    if not isRunning then
-        button.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
-    end
+	if not isRunning then
+		button.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+	end
 end)
 button.MouseLeave:Connect(function()
-    if not isRunning then
-        button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-    end
+	if not isRunning then
+		button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+	end
 end)

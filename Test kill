@@ -4,6 +4,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
+local lastdiedcframe
+
 local screen = Instance.new("ScreenGui")
 screen.ResetOnSpawn = false
 screen.Name = "TeleportUI"
@@ -11,7 +13,7 @@ screen.Parent = LocalPlayer.PlayerGui
 
 -- Panel
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 210, 0, 300)
+panel.Size = UDim2.new(0, 210, 0, 400)
 panel.Position = UDim2.new(0, 16, 0, 16)
 panel.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
 panel.BorderSizePixel = 0
@@ -106,6 +108,30 @@ Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
 local btnStroke = Instance.new("UIStroke", button)
 btnStroke.Color = Color3.fromRGB(70, 70, 80)
 
+local button2 = Instance.new("TextButton", panel)
+button2.Size = UDim2.new(1, -20, 0, 32)
+button2.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+button2.BorderSizePixel = 0
+button2.Text = "Blacklist All"
+button2.TextColor3 = Color3.fromRGB(200, 200, 210)
+button2.TextSize = 13
+button2.Font = Enum.Font.GothamBold
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+local btnStroke2 = Instance.new("UIStroke", button2)
+btnStroke2.Color = Color3.fromRGB(70, 70, 80)
+
+local button3 = Instance.new("TextButton", panel)
+button3.Size = UDim2.new(1, -20, 0, 32)
+button3.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+button3.BorderSizePixel = 0
+button3.Text = "UnBlacklist All"
+button3.TextColor3 = Color3.fromRGB(200, 200, 210)
+button3.TextSize = 13
+button3.Font = Enum.Font.GothamBold
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+local btnStroke3 = Instance.new("UIStroke", button3)
+btnStroke3.Color = Color3.fromRGB(70, 70, 80)
+
 -- Status
 local statusLabel = Instance.new("TextLabel", panel)
 statusLabel.Size = UDim2.new(1, -20, 0, 18)
@@ -143,7 +169,7 @@ local function refreshPlayerList()
 			pb.Size = UDim2.new(1, -6, 0, 26)
 			pb.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
 			pb.BorderSizePixel = 0
-			pb.Text = v.Name
+			pb.Text = v.Name.."(@"..v.DisplayName..")"
 			pb.TextSize = 12
 			pb.Font = Enum.Font.Gotham
 			pb.TextXAlignment = Enum.TextXAlignment.Left
@@ -210,38 +236,78 @@ local function followTarget(target)
 		local myRoot = myChar:FindFirstChild("HumanoidRootPart")
 		local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
 		if not myRoot or not targetRoot then return end
-		if (myRoot.Position - targetRoot.Position).Magnitude > dis then return end
+		if math.floor((myRoot.Position - targetRoot.Position).Magnitude) > dis then return end
 		local offset = targetRoot.CFrame * CFrame.new(0, 1.5, 2)
 		myRoot.AssemblyLinearVelocity = Vector3.zero
 		myRoot.CFrame = offset
 	end)
 end
 
+local function getClosestPlayer()
+	local myChar = LocalPlayer.Character
+	local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+	if not myRoot then
+		return nil
+	end
+
+	local closestPlayer = nil
+	local closestDistance = math.huge
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and not table.find(blacklist, player.Name) then
+			local char = player.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+
+			if root then
+				local distance = (myRoot.Position - root.Position).Magnitude
+
+				if distance <= dis and distance < closestDistance then
+					closestDistance = distance
+					closestPlayer = player
+				end
+			end
+		end
+	end
+
+	return closestPlayer
+end
+
 local function tp()
-	if isRunning then stopTp() return end
+	if isRunning then
+		stopTp()
+		return
+	end
+
 	isRunning = true
 	button.Text = "■  Stop TP"
 	button.BackgroundColor3 = Color3.fromRGB(80, 25, 25)
 	btnStroke.Color = Color3.fromRGB(180, 60, 60)
 
 	task.spawn(function()
-		local index = 1
 		while isRunning do
-			local others = {}
-			for _, v in ipairs(Players:GetPlayers()) do
-				if v ~= LocalPlayer and not table.find(blacklist, v.Name) then table.insert(others, v) end
+			local target = getClosestPlayer()
+
+			if target then
+				setStatus(
+					"● Following: " .. target.Name,
+					Color3.fromRGB(80, 200, 120)
+				)
+
+				followTarget(target)
+			else
+				if connected then
+					connected:Disconnect()
+					connected = nil
+				end
+
+				setStatus(
+					"● No players in range",
+					Color3.fromRGB(200, 150, 60)
+				)
 			end
 
-				if #others > 0 then
-					if index > #others then index = 1 end
-					local target = others[index]
-					setStatus("● Following: " .. target.Name, Color3.fromRGB(80, 200, 120))
-					followTarget(target)
-					index = index + 1
-				else
-					setStatus("● No players found", Color3.fromRGB(200, 150, 60))
-				end
-				task.wait(5)
+			task.wait(1)
 		end
 	end)
 end
@@ -261,13 +327,53 @@ end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
 button.MouseButton1Click:Connect(tp)
+
 button.MouseEnter:Connect(function()
-	if not isRunning then button.BackgroundColor3 = Color3.fromRGB(50, 50, 58) end
-end)
-button.MouseLeave:Connect(function()
-	if not isRunning then button.BackgroundColor3 = Color3.fromRGB(35, 35, 40) end
+	if not isRunning then
+		button.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+	end
 end)
 
+button.MouseLeave:Connect(function()
+	if not isRunning then
+		button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+	end
+end)
+
+-- Blacklist All
+button2.MouseEnter:Connect(function()
+	button2.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+end)
+
+button2.MouseLeave:Connect(function()
+	button2.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+end)
+
+button2.MouseButton1Click:Connect(function()
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			if not table.find(blacklist, player.Name) then
+				table.insert(blacklist, player.Name)
+			end
+		end
+	end
+
+	refreshPlayerList()
+end)
+
+-- Unblacklist All
+button3.MouseEnter:Connect(function()
+	button3.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+end)
+
+button3.MouseLeave:Connect(function()
+	button3.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+end)
+
+button3.MouseButton1Click:Connect(function()
+	table.clear(blacklist)
+	refreshPlayerList()
+end)
 UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessedEvent: boolean) 
 	if gameProcessedEvent then return end
 	if input.KeyCode == Enum.KeyCode.H then

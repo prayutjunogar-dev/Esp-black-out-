@@ -237,7 +237,7 @@ local function followTarget(target)
 		local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
 		if not myRoot or not targetRoot then return end
 		if math.floor((myRoot.Position - targetRoot.Position).Magnitude) > dis then return end
-		local offset = targetRoot.CFrame * CFrame.new(0, 1.5, 2)
+		local offset = targetRoot.CFrame * CFrame.new(0, 10, 2)
 		myRoot.AssemblyLinearVelocity = Vector3.zero
 		myRoot.CFrame = offset
 	end)
